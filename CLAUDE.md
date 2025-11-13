@@ -81,6 +81,10 @@ Amazon Q 的 `description` 字段限制 10240 字符。超长描述会:
 1. **历史消息必须严格交替**: user → assistant → user → assistant
 2. **连续用户消息会自动合并**: `message_processor.py` 处理
 3. **tool_result 格式转换**: Claude 格式 → Amazon Q 格式 (`[{"text": "..."}]`)
+4. **图片内容处理**:
+   - Claude `type: image` 内容块自动提取并转换
+   - 支持 currentMessage 和 history 中的图片
+   - 格式转换: `media_type: "image/png"` → `format: "png"`
 
 ### Token 管理
 - Token 缓存在 `~/.amazonq_token_cache.json`

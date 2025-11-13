@@ -53,7 +53,15 @@ Accept: */*
           "tools": []
         },
         "origin": "CLI",
-        "modelId": "claude-sonnet-4.5"
+        "modelId": "claude-sonnet-4.5",
+        "images": [  // 可选，图片列表
+          {
+            "format": "png",
+            "source": {
+              "bytes": "base64_encoded_image_data"
+            }
+          }
+        ]
       }
     },
     "chatTriggerType": "MANUAL"
@@ -186,10 +194,35 @@ Content-Type: application/json
 | Claude API | Amazon Q API |
 |-----------|-------------|
 | `model` | `conversationState.currentMessage.userInputMessage.modelId` |
-| `messages[-1].content` | `conversationState.currentMessage.userInputMessage.content` |
+| `messages[-1].content` (文本) | `conversationState.currentMessage.userInputMessage.content` |
+| `messages[-1].content` (图片) | `conversationState.currentMessage.userInputMessage.images` |
 | `messages[:-1]` | `conversationState.history` |
 | `tools` | `conversationState.currentMessage.userInputMessage.userInputMessageContext.tools` |
 | `system` | 添加到 `content` 前面 |
+
+#### 图片格式转换
+
+Claude API 格式：
+```json
+{
+  "type": "image",
+  "source": {
+    "type": "base64",
+    "media_type": "image/png",
+    "data": "base64_encoded_data"
+  }
+}
+```
+
+Amazon Q API 格式：
+```json
+{
+  "format": "png",
+  "source": {
+    "bytes": "base64_encoded_data"
+  }
+}
+```
 
 ### 响应映射
 
