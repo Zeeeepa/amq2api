@@ -2,247 +2,290 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"/>
-  <title>Amazon Q 账号管理控制台</title>
+  <title>账号管理控制台</title>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <style>
     :root {
-      --bg:#0a0e1a;
-      --panel:#0f1420;
-      --muted:#8b95a8;
-      --text:#e8f0ff;
-      --accent:#4f8fff;
-      --danger:#ff4757;
-      --ok:#2ed573;
-      --warn:#ffa502;
-      --border:#1a2332;
-      --chip:#141b28;
-      --code:#0d1218;
-      --glow:rgba(79,143,255,.15);
+      --bg: #f5f5f7;
+      --panel: #ffffff;
+      --text: #1d1d1f;
+      --muted: #86868b;
+      --accent: #0071e3;
+      --accent-hover: #0077ed;
+      --danger: #ff3b30;
+      --success: #34c759;
+      --warning: #ff9500;
+      --border: #d2d2d7;
+      --shadow: rgba(0,0,0,0.08);
+      --shadow-hover: rgba(0,0,0,0.12);
     }
-    * { box-sizing:border-box; }
-    html, body { height:100%; margin:0; }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #000000;
+        --panel: #1c1c1e;
+        --text: #f5f5f7;
+        --muted: #98989d;
+        --border: #38383a;
+        --shadow: rgba(0,0,0,0.3);
+        --shadow-hover: rgba(0,0,0,0.4);
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      padding:0 0 40px;
-      background:radial-gradient(ellipse at top, #0f1624 0%, #0a0e1a 100%);
-      color:var(--text);
-      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,PingFang SC,Hiragino Sans GB,Microsoft YaHei,Noto Sans,Arial,sans-serif;
-      line-height:1.6;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+      line-height: 1.5;
+      padding: 40px 20px;
     }
-    h1,h2,h3 { font-weight:700; letter-spacing:-.02em; margin:0; }
-    h1 { font-size:28px; margin:24px 0 12px; background:linear-gradient(135deg,#4f8fff,#7b9fff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
-    h2 { font-size:18px; margin:20px 0 16px; color:#c5d4ff; }
-    h3 { font-size:15px; margin:16px 0 10px; color:#a8b8d8; }
-    .container { max-width:1280px; margin:0 auto; padding:20px; }
+    .container { max-width: 980px; margin: 0 auto; }
+    h1 { font-size: 48px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; }
+    h2 { font-size: 28px; font-weight: 600; margin: 32px 0 16px; }
+    h3 { font-size: 20px; font-weight: 600; margin: 24px 0 12px; }
     .panel {
-      background:linear-gradient(145deg,rgba(15,20,32,.8),rgba(10,14,26,.9));
-      border:1px solid var(--border);
-      border-radius:16px;
-      padding:24px;
-      box-shadow:0 20px 60px rgba(0,0,0,.4),0 0 0 1px rgba(79,143,255,.08),inset 0 1px 0 rgba(255,255,255,.03);
-      backdrop-filter:blur(12px);
-      transition:transform .2s,box-shadow .2s;
-      margin-bottom:20px;
+      background: var(--panel);
+      border-radius: 18px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px var(--shadow);
     }
-    .panel:hover { transform:translateY(-2px); box-shadow:0 24px 70px rgba(0,0,0,.5),0 0 0 1px rgba(79,143,255,.12),inset 0 1px 0 rgba(255,255,255,.04); }
-    .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-    label { color:var(--muted); font-size:13px; font-weight:500; letter-spacing:.01em; }
-    .field { display:flex; flex-direction:column; gap:8px; flex:1; min-width:200px; }
-    input,textarea,select {
-      background:rgba(12,16,28,.6);
-      color:var(--text);
-      border:1px solid var(--border);
-      border-radius:12px;
-      padding:12px 14px;
-      outline:none;
-      transition:all .2s;
-      font-size:14px;
-      box-shadow:inset 0 1px 2px rgba(0,0,0,.2);
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .field { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px; }
+    label { color: var(--muted); font-size: 13px; font-weight: 500; }
+    input, textarea, select {
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s;
     }
-    input:focus,textarea:focus,select:focus {
-      border-color:var(--accent);
-      box-shadow:0 0 0 3px var(--glow),inset 0 1px 2px rgba(0,0,0,.2);
-      background:rgba(12,16,28,.8);
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(0,113,227,0.1);
     }
-    textarea { min-height:140px; resize:vertical; font-family:ui-monospace,monospace; }
+    textarea { min-height: 120px; resize: vertical; font-family: "SF Mono", Monaco, monospace; }
     button {
-      background:linear-gradient(135deg,#2563eb,#1e40af);
-      color:#fff;
-      border:none;
-      border-radius:12px;
-      padding:12px 20px;
-      font-weight:600;
-      font-size:14px;
-      cursor:pointer;
-      transition:all .2s;
-      box-shadow:0 4px 16px rgba(37,99,235,.3),inset 0 1px 0 rgba(255,255,255,.1);
-      position:relative;
-      overflow:hidden;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    button:before {
-      content:'';
-      position:absolute;
-      top:0;left:0;right:0;bottom:0;
-      background:linear-gradient(135deg,rgba(255,255,255,.1),transparent);
-      opacity:0;
-      transition:opacity .2s;
-    }
-    button:hover { transform:translateY(-1px); box-shadow:0 6px 20px rgba(37,99,235,.4),inset 0 1px 0 rgba(255,255,255,.15); }
-    button:hover:before { opacity:1; }
-    button:active { transform:translateY(0); }
-    button:disabled { opacity:.5; cursor:not-allowed; transform:none; }
-    .btn-secondary { background:linear-gradient(135deg,#1e293b,#0f172a); box-shadow:0 4px 16px rgba(15,23,42,.3),inset 0 1px 0 rgba(255,255,255,.05); }
-    .btn-secondary:hover { box-shadow:0 6px 20px rgba(15,23,42,.4),inset 0 1px 0 rgba(255,255,255,.08); }
-    .btn-danger { background:linear-gradient(135deg,#dc2626,#991b1b); box-shadow:0 4px 16px rgba(220,38,38,.3),inset 0 1px 0 rgba(255,255,255,.1); }
-    .btn-danger:hover { box-shadow:0 6px 20px rgba(220,38,38,.4),inset 0 1px 0 rgba(255,255,255,.15); }
-    .btn-warn { background:linear-gradient(135deg,#f59e0b,#d97706); box-shadow:0 4px 16px rgba(245,158,11,.3),inset 0 1px 0 rgba(255,255,255,.1); }
-    .btn-warn:hover { box-shadow:0 6px 20px rgba(245,158,11,.4),inset 0 1px 0 rgba(255,255,255,.15); }
-    .kvs { display:grid; grid-template-columns:160px 1fr; gap:10px 16px; font-size:13px; }
-    .muted { color:var(--muted); }
+    button:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: var(--muted); }
+    .btn-secondary:hover { background: #6e6e73; }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: #ff453a; }
+    .btn-warning { background: var(--warning); }
+    .btn-warning:hover { background: #ffaa33; }
     .chip {
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:6px 12px;
-      background:rgba(20,27,40,.8);
-      border:1px solid var(--border);
-      border-radius:20px;
-      color:#a8b8ff;
-      font-size:12px;
-      font-weight:500;
-      box-shadow:0 2px 8px rgba(0,0,0,.2);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
     }
-    .list { display:flex; flex-direction:column; gap:12px; max-height:600px; overflow:auto; padding:2px; }
-    .list::-webkit-scrollbar { width:8px; }
-    .list::-webkit-scrollbar-track { background:rgba(0,0,0,.2); border-radius:4px; }
-    .list::-webkit-scrollbar-thumb { background:rgba(79,143,255,.3); border-radius:4px; }
-    .list::-webkit-scrollbar-thumb:hover { background:rgba(79,143,255,.5); }
+    .chip.success { color: var(--success); border-color: var(--success); }
+    .chip.danger { color: var(--danger); border-color: var(--danger); }
+    .chip.amazonq { color: #ff9900; border-color: #ff9900; }
+    .chip.gemini { color: #4285f4; border-color: #4285f4; }
+    .list { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
     .card {
-      border:1px solid var(--border);
-      border-radius:14px;
-      padding:16px;
-      background:linear-gradient(145deg,rgba(12,19,34,.6),rgba(10,14,26,.8));
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      box-shadow:0 4px 16px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.02);
-      transition:all .2s;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      transition: all 0.2s;
     }
-    .card:hover { border-color:rgba(79,143,255,.3); box-shadow:0 6px 20px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.03); }
-    .mono { font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }
-    .right { margin-left:auto; }
-    .sep { height:1px; background:linear-gradient(90deg,transparent,rgba(79,143,255,.2),transparent); margin:16px 0; }
-    .status-ok { color:var(--ok); font-weight:600; }
-    .status-fail { color:var(--danger); font-weight:600; }
-    .switch { position:relative; display:inline-block; width:50px; height:26px; }
-    .switch input { opacity:0; width:0; height:0; }
+    .card:hover { box-shadow: 0 4px 12px var(--shadow-hover); }
+    .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .card-title { font-size: 17px; font-weight: 600; flex: 1; }
+    .kvs { display: grid; grid-template-columns: 140px 1fr; gap: 8px 16px; font-size: 13px; margin: 12px 0; }
+    .kvs .key { color: var(--muted); }
+    .kvs .value { font-family: "SF Mono", Monaco, monospace; word-break: break-all; }
+    .switch { position: relative; display: inline-block; width: 51px; height: 31px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
     .slider {
-      position:absolute;
-      cursor:pointer;
-      top:0;left:0;right:0;bottom:0;
-      background:linear-gradient(135deg,#374151,#1f2937);
-      transition:.3s;
-      border-radius:26px;
-      border:1px solid var(--border);
-      box-shadow:inset 0 2px 4px rgba(0,0,0,.3);
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--border);
+      transition: 0.3s;
+      border-radius: 31px;
     }
     .slider:before {
-      position:absolute;
-      content:"";
-      height:20px;
-      width:20px;
-      left:3px;
-      bottom:2px;
-      background:linear-gradient(135deg,#f3f4f6,#e5e7eb);
-      transition:.3s;
-      border-radius:50%;
-      box-shadow:0 2px 6px rgba(0,0,0,.3);
+      position: absolute;
+      content: "";
+      height: 27px;
+      width: 27px;
+      left: 2px;
+      bottom: 2px;
+      background: white;
+      transition: 0.3s;
+      border-radius: 50%;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
-    input:checked+.slider { background:linear-gradient(135deg,#3b82f6,#2563eb); box-shadow:0 0 12px rgba(59,130,246,.4),inset 0 2px 4px rgba(0,0,0,.2); }
-    input:checked+.slider:before { transform:translateX(24px); }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-    .panel { animation:fadeIn .4s ease-out; }
+    input:checked + .slider { background: var(--success); }
+    input:checked + .slider:before { transform: translateX(20px); }
+    .divider { height: 1px; background: var(--border); margin: 24px 0; }
+    .mono { font-family: "SF Mono", Monaco, monospace; }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Amazon Q 账号管理控制台</h1>
+    <h1>账号管理</h1>
+    <p style="color: var(--muted); margin-bottom: 32px;">管理 Amazon Q 和 Gemini 账号</p>
 
     <div class="panel">
       <h2>系统状态</h2>
       <div class="row">
-        <div class="field" style="max-width:300px">
-          <label>健康检查</label>
-          <div class="row">
-            <button class="btn-secondary" onclick="checkHealth()">检查</button>
-            <div id="health" class="chip">未检测</div>
-          </div>
-        </div>
+        <button onclick="checkHealth()">检查健康状态</button>
+        <div id="health" class="chip">未检测</div>
       </div>
     </div>
 
     <div class="panel">
-      <h2>账号管理</h2>
+      <h2>账号列表</h2>
       <div class="row">
-        <button class="btn-secondary" onclick="loadAccounts()">刷新列表</button>
-        <button class="btn-warn" onclick="testAllAccounts()">测试所有启用账号</button>
+        <button onclick="loadAccounts()">刷新列表</button>
+        <select id="filter_type" onchange="loadAccounts()" style="max-width:150px">
+          <option value="all">全部类型</option>
+          <option value="amazonq">Amazon Q</option>
+          <option value="gemini">Gemini</option>
+        </select>
+        <button class="btn-warning" onclick="testAllAccounts()">测试所有账号</button>
         <input id="test_message" placeholder="测试消息" value="Hello" style="max-width:200px" />
         <div id="test_status" class="chip" style="display:none"></div>
       </div>
       <div id="test_results" style="margin-top:12px"></div>
       <div class="list" id="accounts"></div>
 
-      <div class="sep"></div>
+      <div class="divider"></div>
 
-      <h3>创建账号</h3>
+      <h3>创建新账号</h3>
       <div class="row">
-        <div class="field"><label>label</label><input id="new_label" /></div>
-        <div class="field"><label>clientId</label><input id="new_clientId" /></div>
-        <div class="field"><label>clientSecret</label><input id="new_clientSecret" /></div>
-      </div>
-      <div class="row">
-        <div class="field"><label>refreshToken</label><input id="new_refreshToken" /></div>
-        <div class="field"><label>accessToken (可选)</label><input id="new_accessToken" /></div>
-      </div>
-      <div class="row">
-        <div class="field" style="max-width:220px">
-          <label>启用（仅启用账号会被用于请求）</label>
-          <div>
-            <label class="switch">
-              <input id="new_enabled" type="checkbox" checked />
-              <span class="slider"></span>
-            </label>
-          </div>
+        <div class="field" style="max-width:200px">
+          <label>账号类型</label>
+          <select id="new_type" onchange="toggleAccountFields()">
+            <option value="amazonq">Amazon Q</option>
+            <option value="gemini">Gemini</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>标签</label>
+          <input id="new_label" placeholder="账号标签" />
         </div>
       </div>
       <div class="row">
-        <button onclick="createAccount()">创建</button>
+        <div class="field">
+          <label>Client ID</label>
+          <input id="new_clientId" />
+        </div>
+        <div class="field">
+          <label>Client Secret</label>
+          <input id="new_clientSecret" type="password" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label>Refresh Token</label>
+          <input id="new_refreshToken" type="password" />
+        </div>
+        <div class="field">
+          <label>Access Token (可选)</label>
+          <input id="new_accessToken" type="password" />
+        </div>
+      </div>
+      <div id="gemini_fields" style="display:none">
+        <div class="row">
+          <div class="field">
+            <label>Project ID (可选)</label>
+            <input id="new_project" placeholder="Gemini 项目 ID" />
+          </div>
+          <div class="field">
+            <label>API Endpoint (可选)</label>
+            <input id="new_api_endpoint" placeholder="https://daily-cloudcode-pa.sandbox.googleapis.com" />
+          </div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <label class="switch">
+          <input id="new_enabled" type="checkbox" checked />
+          <span class="slider"></span>
+        </label>
+        <label style="color: var(--text)">启用账号</label>
+        <button onclick="createAccount()">创建账号</button>
       </div>
 
-      <div class="sep"></div>
+      <div class="divider"></div>
 
-      <h3>批量导入账号（测试）</h3>
+      <h3>批量导入</h3>
+      <div class="row">
+        <div class="field" style="max-width:200px">
+          <label>导入类型</label>
+          <select id="import_type" onchange="toggleImportFormat()">
+            <option value="full">完整格式</option>
+            <option value="amazonq">Amazon Q 简化</option>
+            <option value="gemini">Gemini 简化</option>
+          </select>
+        </div>
+      </div>
       <div class="field">
-        <label>账号数据（每行一个，格式：email|password|clientId|clientSecret|refreshToken|accessToken）</label>
-        <textarea id="import_data" placeholder="user@example.com|pass123|client_id_xxx|client_secret_xxx|refresh_token_xxx|access_token_xxx"></textarea>
+        <label id="import_format_label">账号数据（每行格式：type|label|clientId|clientSecret|refreshToken|accessToken|project|api_endpoint）</label>
+        <textarea id="import_data" placeholder="amazonq|我的账号|client_id|client_secret|refresh_token|access_token||"></textarea>
       </div>
       <div class="row">
         <button onclick="importAccounts()">批量导入</button>
         <button class="btn-secondary" onclick="exportAccounts()">导出所有账号</button>
         <div id="import_status" class="chip" style="display:none"></div>
       </div>
-
     </div>
   </div>
 
 <script>
+function toggleAccountFields() {
+  const type = document.getElementById('new_type').value;
+  document.getElementById('gemini_fields').style.display = type === 'gemini' ? 'block' : 'none';
+}
+
+function toggleImportFormat() {
+  const type = document.getElementById('import_type').value;
+  const label = document.getElementById('import_format_label');
+  const textarea = document.getElementById('import_data');
+
+  if (type === 'amazonq') {
+    label.textContent = '账号数据（每行格式：label|clientId|clientSecret|refreshToken|accessToken）';
+    textarea.placeholder = '我的账号|client_id|client_secret|refresh_token|access_token';
+  } else if (type === 'gemini') {
+    label.textContent = '账号数据（每行格式：label|clientId|clientSecret|refreshToken|accessToken|project|api_endpoint）';
+    textarea.placeholder = '我的账号|client_id|client_secret|refresh_token|access_token|project_id|api_endpoint';
+  } else {
+    label.textContent = '账号数据（每行格式：type|label|clientId|clientSecret|refreshToken|accessToken|project|api_endpoint）';
+    textarea.placeholder = 'amazonq|我的账号|client_id|client_secret|refresh_token|access_token||';
+  }
+}
+
 function setHealth(text, ok=true) {
   const el = document.getElementById('health');
   el.textContent = text;
-  el.style.color = ok ? 'var(--ok)' : 'var(--danger)';
+  el.className = ok ? 'chip success' : 'chip danger';
 }
 
-async function checkHealth(){
-  try{
+async function checkHealth() {
+  try {
     const r = await fetch('/health');
     const j = await r.json();
     if (j && j.status === 'healthy') {
@@ -250,19 +293,16 @@ async function checkHealth(){
     } else {
       setHealth('不健康', false);
     }
-  } catch(e){
+  } catch(e) {
     setHealth('错误', false);
   }
 }
 
-function renderAccounts(list){
+function renderAccounts(list) {
   const root = document.getElementById('accounts');
   root.innerHTML = '';
   if (!Array.isArray(list) || list.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'muted';
-    empty.textContent = '暂无账号';
-    root.appendChild(empty);
+    root.innerHTML = '<p style="color: var(--muted)">暂无账号</p>';
     return;
   }
   for (const acc of list) {
@@ -270,24 +310,22 @@ function renderAccounts(list){
     card.className = 'card';
 
     const header = document.createElement('div');
-    header.className = 'row';
-    const name = document.createElement('div');
-    name.innerHTML = '<strong>' + (acc.label || '(无标签)') + '</strong>';
-    const id = document.createElement('div');
-    id.className = 'chip mono';
-    id.textContent = acc.id;
+    header.className = 'card-header';
 
-    const spacer = document.createElement('div');
-    spacer.className = 'right';
+    const title = document.createElement('div');
+    title.className = 'card-title';
+    title.textContent = acc.label || '(无标签)';
 
-    // Enabled toggle
-    const toggleWrap = document.createElement('div');
-    const toggleLabel = document.createElement('label');
-    toggleLabel.style.marginRight = '6px';
-    toggleLabel.className = 'muted';
-    toggleLabel.textContent = '启用';
-    const toggle = document.createElement('label');
-    toggle.className = 'switch';
+    const typeChip = document.createElement('span');
+    typeChip.className = `chip ${acc.type || 'amazonq'}`;
+    typeChip.textContent = acc.type === 'gemini' ? 'Gemini' : 'Amazon Q';
+
+    const idChip = document.createElement('span');
+    idChip.className = 'chip mono';
+    idChip.textContent = acc.id.substring(0, 8);
+
+    const toggleWrap = document.createElement('label');
+    toggleWrap.className = 'switch';
     const chk = document.createElement('input');
     chk.type = 'checkbox';
     chk.checked = !!acc.enabled;
@@ -300,8 +338,44 @@ function renderAccounts(list){
     };
     const slider = document.createElement('span');
     slider.className = 'slider';
-    toggle.appendChild(chk); toggle.appendChild(slider);
-    toggleWrap.appendChild(toggleLabel); toggleWrap.appendChild(toggle);
+    toggleWrap.appendChild(chk);
+    toggleWrap.appendChild(slider);
+
+    header.appendChild(title);
+    header.appendChild(typeChip);
+    header.appendChild(idChip);
+    header.appendChild(toggleWrap);
+    card.appendChild(header);
+
+    const meta = document.createElement('div');
+    meta.className = 'kvs';
+    function row(k, v) {
+      const kEl = document.createElement('div');
+      kEl.className = 'key';
+      kEl.textContent = k;
+      const vEl = document.createElement('div');
+      vEl.className = 'value';
+      vEl.textContent = v ?? '';
+      meta.appendChild(kEl);
+      meta.appendChild(vEl);
+    }
+
+    const other = acc.other || {};
+    if (other.suspended) {
+      row('状态', '⚠️ 已被封禁');
+      row('封禁时间', other.suspended_at || 'N/A');
+    }
+    row('刷新状态', acc.last_refresh_status || 'never');
+    row('刷新时间', acc.last_refresh_time || 'N/A');
+    row('Client ID', acc.clientId);
+    if (acc.type === 'gemini' && other.project) {
+      row('Project ID', other.project);
+    }
+    card.appendChild(meta);
+
+    const actions = document.createElement('div');
+    actions.className = 'row';
+    actions.style.marginTop = '16px';
 
     const testBtn = document.createElement('button');
     testBtn.className = 'btn-secondary';
@@ -309,106 +383,84 @@ function renderAccounts(list){
     testBtn.onclick = () => testSingleAccount(acc.id);
 
     const refreshBtn = document.createElement('button');
-    refreshBtn.className = 'btn-warn';
+    refreshBtn.className = 'btn-warning';
     refreshBtn.textContent = '刷新Token';
     refreshBtn.onclick = () => refreshAccount(acc.id);
+
+    actions.appendChild(testBtn);
+    actions.appendChild(refreshBtn);
+
+    if (acc.type === 'gemini') {
+      const quotaBtn = document.createElement('button');
+      quotaBtn.className = 'btn-secondary';
+      quotaBtn.textContent = '查看配额';
+      quotaBtn.onclick = () => viewQuota(acc.id);
+      actions.appendChild(quotaBtn);
+    }
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn-secondary';
+    editBtn.textContent = '编辑';
+    editBtn.onclick = () => editAccount(acc);
+    actions.appendChild(editBtn);
 
     const delBtn = document.createElement('button');
     delBtn.className = 'btn-danger';
     delBtn.textContent = '删除';
     delBtn.onclick = () => deleteAccount(acc.id);
 
-    header.appendChild(name);
-    header.appendChild(id);
-    header.appendChild(spacer);
-    header.appendChild(toggleWrap);
-    header.appendChild(testBtn);
-    header.appendChild(refreshBtn);
-    header.appendChild(delBtn);
-    card.appendChild(header);
-
-    const meta = document.createElement('div');
-    meta.className = 'kvs mono';
-    function row(k, v, style) {
-      const kEl = document.createElement('div'); kEl.className = 'muted'; kEl.textContent = k;
-      const vEl = document.createElement('div'); vEl.textContent = v ?? '';
-      if (style) vEl.style.cssText = style;
-      meta.appendChild(kEl); meta.appendChild(vEl);
-    }
-
-    // 检查是否被封
-    const other = acc.other || {};
-    const isSuspended = other.suspended === true;
-
-    row('enabled', String(!!acc.enabled));
-    if (isSuspended) {
-      row('状态', '⚠️ 账号已被封禁', 'color:var(--danger);font-weight:600');
-      row('封禁时间', other.suspended_at || 'N/A');
-      row('封禁原因', other.suspend_reason || 'N/A');
-    }
-    row('last_refresh_status', acc.last_refresh_status);
-    row('last_refresh_time', acc.last_refresh_time);
-    row('clientId', acc.clientId);
-    row('hasRefreshToken', acc.refreshToken ? 'yes' : 'no');
-    row('hasAccessToken', acc.accessToken ? 'yes' : 'no');
-    row('created_at', acc.created_at);
-    row('updated_at', acc.updated_at);
-    card.appendChild(meta);
-
-    // quick edit form (label, accessToken)
-    const editRow = document.createElement('div');
-    editRow.className = 'row';
-    editRow.style.marginTop = '8px';
-    const labelField = document.createElement('input');
-    labelField.placeholder = 'label';
-    labelField.value = acc.label || '';
-    const accessField = document.createElement('input');
-    accessField.placeholder = 'accessToken（可选）';
-    accessField.value = acc.accessToken || '';
-    const saveBtn = document.createElement('button');
-    saveBtn.className = 'btn-secondary';
-    saveBtn.textContent = '保存';
-    saveBtn.onclick = async () => {
-      await updateAccount(acc.id, { label: labelField.value, accessToken: accessField.value });
-    };
-    editRow.appendChild(labelField);
-    editRow.appendChild(accessField);
-    editRow.appendChild(saveBtn);
-    card.appendChild(editRow);
+    actions.appendChild(delBtn);
+    card.appendChild(actions);
 
     root.appendChild(card);
   }
 }
 
-async function loadAccounts(){
-  try{
+async function loadAccounts() {
+  try {
     const r = await fetch('/v2/accounts');
-    const j = await r.json();
-    renderAccounts(j);
-  } catch(e){
-    alert('加载账户失败：' + e);
+    let accounts = await r.json();
+
+    // 应用类型筛选
+    const filterType = document.getElementById('filter_type').value;
+    if (filterType !== 'all') {
+      accounts = accounts.filter(acc => (acc.type || 'amazonq') === filterType);
+    }
+
+    renderAccounts(accounts);
+  } catch(e) {
+    alert('加载失败：' + e);
   }
 }
 
-async function createAccount(){
+async function createAccount() {
+  const type = document.getElementById('new_type').value;
+  const other = {};
+  if (type === 'gemini') {
+    const project = document.getElementById('new_project').value.trim();
+    const api_endpoint = document.getElementById('new_api_endpoint').value.trim();
+    if (project) other.project = project;
+    if (api_endpoint) other.api_endpoint = api_endpoint;
+  }
+
   const body = {
+    type,
     label: document.getElementById('new_label').value.trim() || null,
     clientId: document.getElementById('new_clientId').value.trim(),
     clientSecret: document.getElementById('new_clientSecret').value.trim(),
     refreshToken: document.getElementById('new_refreshToken').value.trim() || null,
     accessToken: document.getElementById('new_accessToken').value.trim() || null,
+    other: Object.keys(other).length > 0 ? other : null,
     enabled: document.getElementById('new_enabled').checked
   };
-  try{
+
+  try {
     const r = await fetch('/v2/accounts', {
-      method:'POST',
-      headers:{ 'content-type':'application/json' },
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body)
     });
-    if (!r.ok) {
-      const t = await r.text();
-      throw new Error(t);
-    }
+    if (!r.ok) throw new Error(await r.text());
     await loadAccounts();
     // 清空表单
     document.getElementById('new_label').value = '';
@@ -416,54 +468,150 @@ async function createAccount(){
     document.getElementById('new_clientSecret').value = '';
     document.getElementById('new_refreshToken').value = '';
     document.getElementById('new_accessToken').value = '';
-  } catch(e){
+    document.getElementById('new_project').value = '';
+    document.getElementById('new_api_endpoint').value = '';
+  } catch(e) {
     alert('创建失败：' + e);
   }
 }
 
-async function deleteAccount(id){
+async function deleteAccount(id) {
   if (!confirm('确认删除该账号？')) return;
-  try{
-    const r = await fetch('/v2/accounts/' + encodeURIComponent(id), { method:'DELETE' });
-    if (!r.ok) { throw new Error(await r.text()); }
+  try {
+    const r = await fetch('/v2/accounts/' + encodeURIComponent(id), { method: 'DELETE' });
+    if (!r.ok) throw new Error(await r.text());
     await loadAccounts();
-  } catch(e){
+  } catch(e) {
     alert('删除失败：' + e);
   }
 }
 
-async function updateAccount(id, patch){
-  try{
+async function updateAccount(id, patch) {
+  try {
     const r = await fetch('/v2/accounts/' + encodeURIComponent(id), {
-      method:'PATCH',
-      headers:{ 'content-type':'application/json' },
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify(patch)
     });
-    if (!r.ok) { throw new Error(await r.text()); }
+    if (!r.ok) throw new Error(await r.text());
     await loadAccounts();
-  } catch(e){
+  } catch(e) {
     alert('更新失败：' + e);
   }
 }
 
-async function refreshAccount(id){
-  try{
-    const r = await fetch('/v2/accounts/' + encodeURIComponent(id) + '/refresh', { method:'POST' });
-    if (!r.ok) { throw new Error(await r.text()); }
+async function refreshAccount(id) {
+  try {
+    const r = await fetch('/v2/accounts/' + encodeURIComponent(id) + '/refresh', { method: 'POST' });
+    if (!r.ok) throw new Error(await r.text());
     await loadAccounts();
-  } catch(e){
+  } catch(e) {
     alert('刷新失败：' + e);
   }
 }
 
-function setImportStatus(text, ok=true){
+async function editAccount(acc) {
+  const other = acc.other || {};
+  let html = '<div style="padding:20px;max-height:70vh;overflow-y:auto">';
+  html += '<h3 style="margin-top:0">编辑账号</h3>';
+  html += '<div style="display:flex;flex-direction:column;gap:12px">';
+  html += `<div><label style="display:block;margin-bottom:4px;color:var(--muted);font-size:13px">标签</label><input id="edit_label" value="${acc.label || ''}" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text)"></div>`;
+  html += `<div><label style="display:block;margin-bottom:4px;color:var(--muted);font-size:13px">Client ID</label><input id="edit_clientId" value="${acc.clientId}" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text)"></div>`;
+  html += `<div><label style="display:block;margin-bottom:4px;color:var(--muted);font-size:13px">Client Secret</label><input id="edit_clientSecret" type="password" value="${acc.clientSecret}" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text)"></div>`;
+  html += `<div><label style="display:block;margin-bottom:4px;color:var(--muted);font-size:13px">Refresh Token</label><input id="edit_refreshToken" type="password" value="${acc.refreshToken || ''}" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text)"></div>`;
+  if (acc.type === 'gemini') {
+    html += `<div><label style="display:block;margin-bottom:4px;color:var(--muted);font-size:13px">Project ID</label><input id="edit_project" value="${other.project || ''}" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text)"></div>`;
+    html += `<div><label style="display:block;margin-bottom:4px;color:var(--muted);font-size:13px">API Endpoint</label><input id="edit_api_endpoint" value="${other.api_endpoint || ''}" style="width:100%;padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text)"></div>`;
+  }
+  html += '</div></div>';
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000';
+  modal.innerHTML = `<div style="background:var(--panel);border-radius:16px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3)">${html}<div style="padding:16px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--border)"><button onclick="this.closest('div[style*=fixed]').remove()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--muted);color:white;cursor:pointer">取消</button><button id="save_edit" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:white;cursor:pointer">保存</button></div></div>`;
+  document.body.appendChild(modal);
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+  document.getElementById('save_edit').onclick = async () => {
+    try {
+      const patch = {
+        label: document.getElementById('edit_label').value.trim() || null,
+        clientId: document.getElementById('edit_clientId').value.trim(),
+        clientSecret: document.getElementById('edit_clientSecret').value.trim(),
+        refreshToken: document.getElementById('edit_refreshToken').value.trim() || null
+      };
+
+      if (acc.type === 'gemini') {
+        const newOther = { ...other };
+        const project = document.getElementById('edit_project').value.trim();
+        const api_endpoint = document.getElementById('edit_api_endpoint').value.trim();
+
+        if (project) {
+          newOther.project = project;
+        } else {
+          delete newOther.project;
+        }
+
+        if (api_endpoint) {
+          newOther.api_endpoint = api_endpoint;
+        } else {
+          delete newOther.api_endpoint;
+        }
+
+        patch.other = newOther;
+      }
+
+      await updateAccount(acc.id, patch);
+      modal.remove();
+    } catch(e) {
+      alert('保存失败：' + e.message);
+    }
+  };
+}
+
+async function viewQuota(id) {
+  try {
+    const r = await fetch(`/v2/accounts/${id}/quota`);
+    if (!r.ok) throw new Error(await r.text());
+    const data = await r.json();
+
+    let html = '<div style="max-height:500px;overflow-y:auto;padding:16px;background:var(--bg);border-radius:12px">';
+    html += '<h3 style="margin-top:0">配额信息</h3>';
+
+    if (data.models) {
+      for (const [modelId, model] of Object.entries(data.models)) {
+        const quota = model.quotaInfo || {};
+        const remaining = (quota.remainingFraction * 100).toFixed(1);
+        const resetTime = quota.resetTime ? new Date(quota.resetTime).toLocaleString('zh-CN', {timeZone: 'Asia/Shanghai'}) : 'N/A';
+
+        html += `<div style="margin-bottom:16px;padding:12px;background:var(--panel);border-radius:8px">`;
+        html += `<div style="font-weight:600;margin-bottom:8px">${model.displayName || modelId}</div>`;
+        html += `<div style="font-size:14px;color:var(--muted)">剩余配额: <span style="color:${remaining > 20 ? 'var(--success)' : 'var(--danger)'}; font-weight:600">${remaining}%</span></div>`;
+        html += `<div style="font-size:14px;color:var(--muted)">重置时间: ${resetTime}</div>`;
+        if (model.maxTokens) html += `<div style="font-size:14px;color:var(--muted)">最大Token: ${model.maxTokens.toLocaleString()}</div>`;
+        html += `</div>`;
+      }
+    }
+
+    html += '</div>';
+
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000';
+    modal.innerHTML = `<div style="background:var(--panel);border-radius:16px;max-width:600px;width:90%;max-height:80vh;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3)">${html}<div style="padding:16px;text-align:right"><button onclick="this.closest('div[style*=fixed]').remove()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:white;cursor:pointer">关闭</button></div></div>`;
+    document.body.appendChild(modal);
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+  } catch(e) {
+    alert('获取配额失败：' + e.message);
+  }
+}
+
+function setImportStatus(text, ok=true) {
   const el = document.getElementById('import_status');
   el.textContent = text;
-  el.style.color = ok ? 'var(--ok)' : 'var(--danger)';
+  el.className = ok ? 'chip success' : 'chip danger';
   el.style.display = 'inline-flex';
 }
 
-async function importAccounts(){
+async function importAccounts() {
   const data = document.getElementById('import_data').value.trim();
   if (!data) {
     alert('请输入账号数据');
@@ -476,6 +624,7 @@ async function importAccounts(){
     return;
   }
 
+  const importType = document.getElementById('import_type').value;
   setImportStatus(`准备导入 ${lines.length} 个账号...`, true);
 
   let success = 0, failed = 0;
@@ -483,31 +632,56 @@ async function importAccounts(){
     const line = lines[i].trim();
     const parts = line.split('|').map(p => p.trim());
 
-    if (parts.length !== 6) {
-      setImportStatus(`第 ${i+1} 行格式错误（需要6个字段）`, false);
-      failed++;
-      continue;
+    let type, label, clientId, clientSecret, refreshToken, accessToken, project, api_endpoint;
+
+    if (importType === 'amazonq') {
+      if (parts.length < 5) {
+        setImportStatus(`第 ${i+1} 行格式错误`, false);
+        failed++;
+        continue;
+      }
+      [label, clientId, clientSecret, refreshToken, accessToken] = parts;
+      type = 'amazonq';
+    } else if (importType === 'gemini') {
+      if (parts.length < 5) {
+        setImportStatus(`第 ${i+1} 行格式错误`, false);
+        failed++;
+        continue;
+      }
+      [label, clientId, clientSecret, refreshToken, accessToken, project, api_endpoint] = parts;
+      type = 'gemini';
+    } else {
+      if (parts.length < 6) {
+        setImportStatus(`第 ${i+1} 行格式错误`, false);
+        failed++;
+        continue;
+      }
+      [type, label, clientId, clientSecret, refreshToken, accessToken, project, api_endpoint] = parts;
     }
 
-    const [email, password, clientId, clientSecret, refreshToken, accessToken] = parts;
+    const other = {};
+    if (project) other.project = project;
+    if (api_endpoint) other.api_endpoint = api_endpoint;
 
     try {
       const r = await fetch('/v2/accounts', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          label: email,
+          type: type || 'amazonq',
+          label,
           clientId,
           clientSecret,
           refreshToken: refreshToken || null,
           accessToken: accessToken || null,
+          other: Object.keys(other).length > 0 ? other : null,
           enabled: true
         })
       });
 
       if (r.ok) {
         success++;
-        setImportStatus(`导入中... ${success}/${lines.length} 成功`, true);
+        setImportStatus(`导入中... ${success}/${lines.length}`, true);
       } else {
         failed++;
         setImportStatus(`导入中... ${success} 成功, ${failed} 失败`, false);
@@ -518,34 +692,31 @@ async function importAccounts(){
     }
   }
 
-  setImportStatus(`导入完成: ${success} 成功, ${failed} 失败`, failed === 0);
+  setImportStatus(`完成: ${success} 成功, ${failed} 失败`, failed === 0);
   await loadAccounts();
-
-  if (failed === 0) {
-    document.getElementById('import_data').value = '';
-  }
+  if (failed === 0) document.getElementById('import_data').value = '';
 }
 
-function setTestStatus(text, ok=true){
+function setTestStatus(text, ok=true) {
   const el = document.getElementById('test_status');
   el.textContent = text;
-  el.style.color = ok ? 'var(--ok)' : 'var(--danger)';
+  el.className = ok ? 'chip success' : 'chip danger';
   el.style.display = 'inline-flex';
 }
 
-async function exportAccounts(){
+async function exportAccounts() {
   try {
     const r = await fetch('/v2/accounts');
     const accounts = await r.json();
-
     if (accounts.length === 0) {
       alert('没有账号可导出');
       return;
     }
 
-    const lines = accounts.map(acc =>
-      `${acc.label || acc.clientId}|password|${acc.clientId}|${acc.clientSecret}|${acc.refreshToken || ''}|${acc.accessToken || ''}`
-    );
+    const lines = accounts.map(acc => {
+      const other = acc.other || {};
+      return `${acc.type || 'amazonq'}|${acc.label || ''}|${acc.clientId}|${acc.clientSecret}|${acc.refreshToken || ''}|${acc.accessToken || ''}|${other.project || ''}|${other.api_endpoint || ''}`;
+    });
 
     const content = lines.join('\n');
     const blob = new Blob([content], { type: 'text/plain' });
@@ -560,7 +731,7 @@ async function exportAccounts(){
   }
 }
 
-async function testSingleAccount(accountId){
+async function testSingleAccount(accountId) {
   const msg = document.getElementById('test_message').value.trim() || 'Hello';
   const accounts = await (await fetch('/v2/accounts')).json();
   const acc = accounts.find(a => a.id === accountId);
@@ -570,18 +741,19 @@ async function testSingleAccount(accountId){
     return;
   }
 
-  setTestStatus(`测试账号 ${acc.label}...`, true);
+  setTestStatus(`测试 ${acc.label}...`, true);
   document.getElementById('test_results').innerHTML = '';
 
   try {
-    const r = await fetch('/v1/messages', {
+    const endpoint = acc.type === 'gemini' ? '/v1/gemini/messages' : '/v1/messages';
+    const r = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
         'X-Account-ID': accountId
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4',
+        model: acc.type === 'gemini' ? 'gemini-3-pro' : 'claude-sonnet-4',
         max_tokens: 50,
         messages: [{ role: 'user', content: msg }]
       })
@@ -590,7 +762,7 @@ async function testSingleAccount(accountId){
     if (!r.ok) {
       const errText = await r.text();
       setTestStatus(`测试失败`, false);
-      document.getElementById('test_results').innerHTML = `<div class="card"><div><strong style="color:var(--danger)">✗ ${acc.label}</strong></div><div style="font-size:12px;color:var(--danger);margin-top:8px">${errText}</div></div>`;
+      document.getElementById('test_results').innerHTML = `<div class="card"><div style="color:var(--danger)">✗ ${acc.label}</div><div style="font-size:12px;margin-top:8px">${errText}</div></div>`;
       return;
     }
 
@@ -620,14 +792,14 @@ async function testSingleAccount(accountId){
     }
 
     setTestStatus(`测试成功`, true);
-    document.getElementById('test_results').innerHTML = `<div class="card"><div><strong style="color:var(--ok)">✓ ${acc.label}</strong></div><div class="mono" style="font-size:12px;margin-top:8px">${text}</div></div>`;
+    document.getElementById('test_results').innerHTML = `<div class="card"><div style="color:var(--success)">✓ ${acc.label}</div><div class="mono" style="font-size:12px;margin-top:8px">${text}</div></div>`;
   } catch(e) {
     setTestStatus(`测试失败`, false);
-    document.getElementById('test_results').innerHTML = `<div class="card"><div><strong style="color:var(--danger)">✗ ${acc.label}</strong></div><div style="font-size:12px;color:var(--danger);margin-top:8px">${e}</div></div>`;
+    document.getElementById('test_results').innerHTML = `<div class="card"><div style="color:var(--danger)">✗ ${acc.label}</div><div style="font-size:12px;margin-top:8px">${e}</div></div>`;
   }
 }
 
-async function testAllAccounts(){
+async function testAllAccounts() {
   const msg = document.getElementById('test_message').value.trim() || 'Hello';
   const accounts = await (await fetch('/v2/accounts')).json();
   const enabled = accounts.filter(a => a.enabled);
@@ -645,14 +817,15 @@ async function testAllAccounts(){
 
   for (const acc of enabled) {
     try {
-      const r = await fetch('/v1/messages', {
+      const endpoint = acc.type === 'gemini' ? '/v1/gemini/messages' : '/v1/messages';
+      const r = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
           'X-Account-ID': acc.id
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4',
+          model: acc.type === 'gemini' ? 'gemini-3-pro' : 'claude-sonnet-4',
           max_tokens: 50,
           messages: [{ role: 'user', content: msg }]
         })
@@ -660,7 +833,7 @@ async function testAllAccounts(){
 
       if (!r.ok) {
         failed++;
-        results.push(`<div class="card"><div><strong style="color:var(--danger)">✗ ${acc.label}</strong></div><div style="font-size:12px;color:var(--danger);margin-top:8px">${await r.text()}</div></div>`);
+        results.push(`<div class="card"><div style="color:var(--danger)">✗ ${acc.label}</div><div style="font-size:12px;margin-top:8px">${await r.text()}</div></div>`);
         setTestStatus(`测试中... ${success+failed}/${enabled.length}`, true);
         continue;
       }
@@ -691,11 +864,11 @@ async function testAllAccounts(){
       }
 
       success++;
-      results.push(`<div class="card"><div><strong style="color:var(--ok)">✓ ${acc.label}</strong></div><div class="mono" style="font-size:12px;margin-top:8px">${text.substring(0,100)}${text.length > 100 ? '...' : ''}</div></div>`);
+      results.push(`<div class="card"><div style="color:var(--success)">✓ ${acc.label}</div><div class="mono" style="font-size:12px;margin-top:8px">${text.substring(0,100)}${text.length > 100 ? '...' : ''}</div></div>`);
       setTestStatus(`测试中... ${success+failed}/${enabled.length}`, true);
     } catch(e) {
       failed++;
-      results.push(`<div class="card"><div><strong style="color:var(--danger)">✗ ${acc.label}</strong></div><div style="font-size:12px;color:var(--danger);margin-top:8px">${e}</div></div>`);
+      results.push(`<div class="card"><div style="color:var(--danger)">✗ ${acc.label}</div><div style="font-size:12px;margin-top:8px">${e}</div></div>`);
     }
   }
 

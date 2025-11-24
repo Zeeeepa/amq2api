@@ -53,3 +53,9 @@ test_*.py
 get_key_token.py
 import_accounts.py
 WARP.md
+# OAuth 临时文件
+gemini_credentials.json
+
+# 临时克隆的项目
+CLIProxyAPI/
+EasyCLI/

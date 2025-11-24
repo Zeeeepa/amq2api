@@ -13,7 +13,7 @@ from config import read_global_config, get_config_sync
 from auth import get_auth_headers_with_retry, refresh_account_token, NoAccountAvailableError, TokenRefreshError
 from account_manager import (
     list_enabled_accounts, list_all_accounts, get_account,
-    create_account, update_account, delete_account
+    create_account, update_account, delete_account, get_random_account
 )
 from models import ClaudeRequest
 from converter import convert_claude_to_codewhisperer_request, codewhisperer_request_to_dict
@@ -23,6 +23,11 @@ from pydantic import BaseModel
 from typing import Dict, Any, Optional
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+
+# Gemini 模块导入
+from gemini.auth import GeminiTokenManager
+from gemini.converter import convert_claude_to_gemini
+from gemini.handler import handle_gemini_stream
 
 # 配置日志
 logging.basicConfig(
@@ -76,6 +81,7 @@ class AccountCreate(BaseModel):
     accessToken: Optional[str] = None
     other: Optional[Dict[str, Any]] = None
     enabled: Optional[bool] = True
+    type: str = "amazonq"  # amazonq 或 gemini
 
 
 class AccountUpdate(BaseModel):
@@ -401,6 +407,123 @@ async def create_message(request: Request):
         raise HTTPException(status_code=500, detail=f"内部服务器错误: {str(e)}")
 
 
+@app.post("/v1/gemini/messages")
+async def create_gemini_message(request: Request):
+    """
+    Gemini API 端点
+    接收 Claude 格式的请求，转换为 Gemini 格式并返回流式响应
+    """
+    try:
+        # 解析请求体
+        request_data = await request.json()
+        logger.info(f"收到 Gemini API 请求: {request_data.get('model', 'unknown')}")
+
+        # 转换为 ClaudeRequest 对象
+        claude_req = parse_claude_request(request_data)
+
+        # 检查是否指定了特定账号（用于测试）
+        specified_account_id = request.headers.get("X-Account-ID")
+
+        if specified_account_id:
+            # 使用指定的账号
+            account = get_account(specified_account_id)
+            if not account:
+                raise HTTPException(status_code=404, detail=f"账号不存在: {specified_account_id}")
+            if not account.get('enabled'):
+                raise HTTPException(status_code=403, detail=f"账号已禁用: {specified_account_id}")
+            if account.get('type') != 'gemini':
+                raise HTTPException(status_code=400, detail=f"账号类型不是 Gemini: {specified_account_id}")
+            logger.info(f"使用指定 Gemini 账号: {account['label']} (ID: {account['id']})")
+        else:
+            # 随机选择 Gemini 账号
+            account = get_random_account(account_type="gemini")
+            if not account:
+                raise HTTPException(status_code=503, detail="没有可用的 Gemini 账号")
+            logger.info(f"使用随机 Gemini 账号: {account['label']} (ID: {account['id']})")
+
+        # 初始化 Token 管理器
+        other = account.get("other") or {}
+        token_manager = GeminiTokenManager(
+            client_id=account["clientId"],
+            client_secret=account["clientSecret"],
+            refresh_token=account["refreshToken"],
+            api_endpoint=other.get("api_endpoint", "https://daily-cloudcode-pa.sandbox.googleapis.com")
+        )
+
+        # 获取项目 ID
+        project_id = other.get("project") or await token_manager.get_project_id()
+
+        # 转换为 Gemini 请求
+        gemini_request = convert_claude_to_gemini(
+            claude_req,
+            project=project_id
+        )
+
+        # 获取认证头
+        auth_headers = await token_manager.get_auth_headers()
+
+        # 构建完整的请求头
+        headers = {
+            **auth_headers,
+            "Content-Type": "application/json",
+            "User-Agent": "antigravity/1.11.3 darwin/arm64",
+            "Accept-Encoding": "gzip"
+        }
+
+        # API URL
+        api_url = f"{other.get('api_endpoint', 'https://daily-cloudcode-pa.sandbox.googleapis.com')}/v1internal:streamGenerateContent?alt=sse"
+
+        # 发送请求到 Gemini
+        logger.info("正在发送请求到 Gemini...")
+
+        async def gemini_byte_stream():
+            async with httpx.AsyncClient(timeout=300.0) as client:
+                try:
+                    async with client.stream(
+                        "POST",
+                        api_url,
+                        json=gemini_request,
+                        headers=headers
+                    ) as response:
+                        if response.status_code != 200:
+                            error_text = await response.aread()
+                            logger.error(f"Gemini API 错误: {response.status_code} {error_text}")
+                            raise HTTPException(
+                                status_code=response.status_code,
+                                detail=f"Gemini API 错误: {error_text.decode()}"
+                            )
+
+                        # 返回字节流
+                        async for chunk in response.aiter_bytes():
+                            if chunk:
+                                yield chunk
+
+                except httpx.RequestError as e:
+                    logger.error(f"请求错误: {e}")
+                    raise HTTPException(status_code=502, detail=f"上游服务错误: {str(e)}")
+
+        # 返回流式响应
+        async def claude_stream():
+            async for event in handle_gemini_stream(gemini_byte_stream(), model=claude_req.model):
+                yield event
+
+        return StreamingResponse(
+            claude_stream(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no"
+            }
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"处理 Gemini 请求时发生错误: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"内部服务器错误: {str(e)}")
+
+
 # 账号管理 API 端点
 @app.get("/v2/accounts")
 async def list_accounts():
@@ -429,7 +552,8 @@ async def create_account_endpoint(body: AccountCreate):
             refresh_token=body.refreshToken,
             access_token=body.accessToken,
             other=body.other,
-            enabled=body.enabled if body.enabled is not None else True
+            enabled=body.enabled if body.enabled is not None else True,
+            account_type=body.type
         )
         return JSONResponse(content=account)
     except Exception as e:
@@ -478,14 +602,66 @@ async def manual_refresh_endpoint(account_id: str):
         if not account:
             raise HTTPException(status_code=404, detail="账号不存在")
 
-        refreshed_account = await refresh_account_token(account)
-        return JSONResponse(content=refreshed_account)
+        account_type = account.get("type", "amazonq")
+
+        if account_type == "gemini":
+            # Gemini 账号刷新
+            other = account.get("other") or {}
+            token_manager = GeminiTokenManager(
+                client_id=account["clientId"],
+                client_secret=account["clientSecret"],
+                refresh_token=account["refreshToken"],
+                api_endpoint=other.get("api_endpoint", "https://daily-cloudcode-pa.sandbox.googleapis.com")
+            )
+            await token_manager.refresh_access_token()
+
+            # 更新数据库
+            from account_manager import update_account_tokens
+            refreshed_account = update_account_tokens(
+                account_id=account_id,
+                access_token=token_manager.access_token,
+                status="success"
+            )
+            return JSONResponse(content=refreshed_account)
+        else:
+            # Amazon Q 账号刷新
+            refreshed_account = await refresh_account_token(account)
+            return JSONResponse(content=refreshed_account)
     except TokenRefreshError as e:
         logger.error(f"刷新 token 失败: {e}")
         raise HTTPException(status_code=502, detail=f"刷新 token 失败: {str(e)}")
     except Exception as e:
         logger.error(f"刷新 token 失败: {e}")
         raise HTTPException(status_code=500, detail=f"刷新 token 失败: {str(e)}")
+
+
+@app.get("/v2/accounts/{account_id}/quota")
+async def get_account_quota(account_id: str):
+    """获取 Gemini 账号配额信息"""
+    try:
+        account = get_account(account_id)
+        if not account:
+            raise HTTPException(status_code=404, detail="账号不存在")
+
+        account_type = account.get("type", "amazonq")
+        if account_type != "gemini":
+            raise HTTPException(status_code=400, detail="只有 Gemini 账号支持配额查询")
+
+        other = account.get("other") or {}
+        token_manager = GeminiTokenManager(
+            client_id=account["clientId"],
+            client_secret=account["clientSecret"],
+            refresh_token=account["refreshToken"],
+            api_endpoint=other.get("api_endpoint", "https://daily-cloudcode-pa.sandbox.googleapis.com")
+        )
+
+        project_id = other.get("project") or await token_manager.get_project_id()
+        models_data = await token_manager.fetch_available_models(project_id)
+
+        return JSONResponse(content=models_data)
+    except Exception as e:
+        logger.error(f"获取配额信息失败: {e}")
+        raise HTTPException(status_code=500, detail=f"获取配额信息失败: {str(e)}")
 
 
 # 管理页面

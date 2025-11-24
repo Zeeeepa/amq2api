@@ -31,6 +31,13 @@ class GlobalConfig:
     api_endpoint: str = "https://q.us-east-1.amazonaws.com/"
     token_endpoint: str = "https://oidc.us-east-1.amazonaws.com/token"
 
+    # Gemini 配置
+    gemini_enabled: bool = False
+    gemini_client_id: Optional[str] = None
+    gemini_client_secret: Optional[str] = None
+    gemini_refresh_token: Optional[str] = None
+    gemini_api_endpoint: str = "https://daily-cloudcode-pa.sandbox.googleapis.com"
+
     # 服务配置
     port: int = 8080
 
@@ -104,6 +111,11 @@ async def read_global_config() -> GlobalConfig:
                 profile_arn=os.getenv("AMAZONQ_PROFILE_ARN") or None,
                 api_endpoint=os.getenv("AMAZONQ_API_ENDPOINT", "https://q.us-east-1.amazonaws.com/"),
                 token_endpoint=os.getenv("AMAZONQ_TOKEN_ENDPOINT", "https://oidc.us-east-1.amazonaws.com/token"),
+                gemini_enabled=os.getenv("GEMINI_ENABLED", "true").lower() == "true",
+                gemini_client_id=os.getenv("GEMINI_CLIENT_ID") or None,
+                gemini_client_secret=os.getenv("GEMINI_CLIENT_SECRET") or None,
+                gemini_refresh_token=os.getenv("GEMINI_REFRESH_TOKEN") or None,
+                gemini_api_endpoint=os.getenv("GEMINI_API_ENDPOINT", "https://daily-cloudcode-pa.sandbox.googleapis.com"),
                 port=int(os.getenv("PORT", "8080")),
                 zero_input_token_models=[m.strip() for m in zero_token_models.split(",")]
             )

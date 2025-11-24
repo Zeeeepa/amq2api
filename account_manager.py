@@ -38,10 +38,18 @@ def _ensure_db():
                 last_refresh_status TEXT,
                 created_at TEXT,
                 updated_at TEXT,
-                enabled INTEGER DEFAULT 1
+                enabled INTEGER DEFAULT 1,
+                type TEXT DEFAULT 'amazonq'
             )
             """
         )
+
+        # 迁移：为已存在的表添加 type 字段
+        cursor = conn.execute("PRAGMA table_info(accounts)")
+        columns = [row[1] for row in cursor.fetchall()]
+        if 'type' not in columns:
+            conn.execute("ALTER TABLE accounts ADD COLUMN type TEXT DEFAULT 'amazonq'")
+
         conn.commit()
 
 
@@ -65,16 +73,19 @@ def _row_to_dict(r: sqlite3.Row) -> Dict[str, Any]:
     return d
 
 
-def list_enabled_accounts() -> List[Dict[str, Any]]:
+def list_enabled_accounts(account_type: Optional[str] = None) -> List[Dict[str, Any]]:
     """获取所有启用的账号"""
     with _conn() as conn:
-        rows = conn.execute("SELECT * FROM accounts WHERE enabled=1 ORDER BY created_at DESC").fetchall()
+        if account_type:
+            rows = conn.execute("SELECT * FROM accounts WHERE enabled=1 AND type=? ORDER BY created_at DESC", (account_type,)).fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM accounts WHERE enabled=1 ORDER BY created_at DESC").fetchall()
         return [_row_to_dict(r) for r in rows]
 
 
-def get_random_account() -> Optional[Dict[str, Any]]:
+def get_random_account(account_type: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """随机选择一个启用的账号"""
-    accounts = list_enabled_accounts()
+    accounts = list_enabled_accounts(account_type)
     if not accounts:
         return None
     return random.choice(accounts)
@@ -96,7 +107,8 @@ def create_account(
     refresh_token: Optional[str] = None,
     access_token: Optional[str] = None,
     other: Optional[Dict[str, Any]] = None,
-    enabled: bool = True
+    enabled: bool = True,
+    account_type: str = "amazonq"
 ) -> Dict[str, Any]:
     """创建新账号"""
     now = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime())
@@ -106,10 +118,10 @@ def create_account(
     with _conn() as conn:
         conn.execute(
             """
-            INSERT INTO accounts (id, label, clientId, clientSecret, refreshToken, accessToken, other, last_refresh_time, last_refresh_status, created_at, updated_at, enabled)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO accounts (id, label, clientId, clientSecret, refreshToken, accessToken, other, last_refresh_time, last_refresh_status, created_at, updated_at, enabled, type)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (acc_id, label, client_id, client_secret, refresh_token, access_token, other_str, None, "never", now, now, 1 if enabled else 0)
+            (acc_id, label, client_id, client_secret, refresh_token, access_token, other_str, None, "never", now, now, 1 if enabled else 0, account_type)
         )
         conn.commit()
         row = conn.execute("SELECT * FROM accounts WHERE id=?", (acc_id,)).fetchone()
