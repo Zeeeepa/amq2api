@@ -11,8 +11,8 @@ from urllib.parse import urlencode
 import httpx
 
 # Antigravity 应用的 OAuth 配置
-GOOGLE_CLIENT_ID = "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET = "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"
+GOOGLE_CLIENT_ID = "自己填写自己的.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET = "GOCSPX-自己填写自己的"
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 CALLBACK_PORT = 63902
