@@ -628,9 +628,17 @@ async def create_gemini_message(request: Request, _: bool = Depends(verify_api_k
                         content_length = response.headers.get('content-length', '')
                         if content_length == '0':
                             logger.error("[HTTP] Gemini API 返回空响应 (content-length: 0)")
-                            # 生成 SSE 错误事件
-                            error_event = 'event: error\ndata: {"type":"error","error":{"type":"api_error","message":"Gemini API 返回空响应，请重试"}}\n\n'
-                            yield error_event.encode('utf-8')
+                            # 返回标准的 Claude API SSE 流，但内容为空
+                            import json
+                            events = [
+                                'event: message_start\ndata: {"type":"message_start","message":{"id":"msg_empty","type":"message","role":"assistant","content":[],"model":"' + claude_req.model + '","stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":0,"output_tokens":0}}}\n\n',
+                                'event: content_block_start\ndata: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}\n\n',
+                                'event: content_block_stop\ndata: {"type":"content_block_stop","index":0}\n\n',
+                                'event: message_delta\ndata: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":0}}\n\n',
+                                'event: message_stop\ndata: {"type":"message_stop"}\n\n'
+                            ]
+                            for event in events:
+                                yield event.encode('utf-8')
                             return
 
                         if response.status_code != 200:
