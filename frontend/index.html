@@ -476,6 +476,17 @@ function renderAccounts(list) {
     if (acc.type === 'gemini' && other.project) {
       row('Project ID', other.project);
     }
+
+    // 添加调用统计信息
+    const statsDiv = document.createElement('div');
+    statsDiv.id = `stats_${acc.id}`;
+    statsDiv.style.marginTop = '12px';
+    statsDiv.innerHTML = '<span style="color: var(--muted); font-size: 12px;">加载统计中...</span>';
+    card.appendChild(statsDiv);
+
+    // 异步加载调用统计
+    loadAccountStats(acc.id);
+
     card.appendChild(meta);
 
     const actions = document.createElement('div');
@@ -502,6 +513,12 @@ function renderAccounts(list) {
       quotaBtn.onclick = () => viewQuota(acc.id);
       actions.appendChild(quotaBtn);
     }
+
+    const rateLimitBtn = document.createElement('button');
+    rateLimitBtn.className = 'btn-secondary';
+    rateLimitBtn.textContent = '配置限流';
+    rateLimitBtn.onclick = () => configureRateLimit(acc);
+    actions.appendChild(rateLimitBtn);
 
     const editBtn = document.createElement('button');
     editBtn.className = 'btn-secondary';
@@ -1388,6 +1405,94 @@ async function syncModels() {
     setSyncStatus('同步失败', false);
     alert('同步模型失败：' + e.message);
   }
+}
+
+async function loadAccountStats(accountId) {
+  try {
+    const r = await authFetch(`/v2/accounts/${accountId}/stats`);
+    if (!r.ok) throw new Error(await r.text());
+    const stats = await r.json();
+
+    const statsDiv = document.getElementById(`stats_${accountId}`);
+    if (!statsDiv) return;
+
+    const isLimited = stats.is_rate_limited;
+    const color = isLimited ? 'var(--danger)' : 'var(--success)';
+
+    statsDiv.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;padding:12px;background:var(--panel);border-radius:8px;border:1px solid var(--border)">
+        <div>
+          <div style="font-size:11px;color:var(--muted)">限流配置</div>
+          <div style="font-size:14px;font-weight:600">${stats.rate_limit_per_hour}/小时</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted)">过去1小时</div>
+          <div style="font-size:14px;font-weight:600;color:${color}">${stats.calls_last_hour}次</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted)">剩余次数</div>
+          <div style="font-size:14px;font-weight:600;color:${color}">${stats.remaining_calls}次</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--muted)">总调用</div>
+          <div style="font-size:14px;font-weight:600">${stats.total_calls}次</div>
+        </div>
+      </div>
+    `;
+  } catch(e) {
+    const statsDiv = document.getElementById(`stats_${accountId}`);
+    if (statsDiv) {
+      statsDiv.innerHTML = '<span style="color: var(--danger); font-size: 12px;">加载统计失败</span>';
+    }
+  }
+}
+
+async function configureRateLimit(acc) {
+  const currentLimit = acc.rate_limit_per_hour || 20;
+
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000';
+  modal.innerHTML = `
+    <div style="background:var(--panel);border-radius:16px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);padding:24px">
+      <h3 style="margin:0 0 16px 0">配置限流</h3>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:16px">设置账号 "${acc.label || acc.id.substring(0,8)}" 每小时允许的调用次数</p>
+      <div style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:8px;color:var(--muted);font-size:13px">每小时调用次数限制</label>
+        <input id="rate_limit_input" type="number" min="1" value="${currentLimit}" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px">
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="this.closest('div[style*=fixed]').remove()" style="padding:8px 16px;border-radius:8px;border:none;background:var(--muted);color:white;cursor:pointer">取消</button>
+        <button id="save_rate_limit" style="padding:8px 16px;border-radius:8px;border:none;background:var(--accent);color:white;cursor:pointer">保存</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+  modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+  document.getElementById('save_rate_limit').onclick = async () => {
+    const newLimit = parseInt(document.getElementById('rate_limit_input').value);
+
+    if (isNaN(newLimit) || newLimit < 1) {
+      alert('请输入有效的限流次数（至少为 1）');
+      return;
+    }
+
+    try {
+      const r = await authFetch(`/v2/accounts/${acc.id}/rate-limit`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ rate_limit_per_hour: newLimit })
+      });
+
+      if (!r.ok) throw new Error(await r.text());
+
+      modal.remove();
+      await loadAccounts();
+    } catch(e) {
+      alert('保存失败：' + e.message);
+    }
+  };
 }
 
 window.addEventListener('DOMContentLoaded', () => {

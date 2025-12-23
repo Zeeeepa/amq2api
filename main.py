@@ -14,7 +14,8 @@ from auth import get_auth_headers_with_retry, refresh_account_token, NoAccountAv
 from account_manager import (
     list_enabled_accounts, list_all_accounts, get_account,
     create_account, update_account, delete_account, get_random_account,
-    get_random_channel_by_model
+    get_random_channel_by_model, check_rate_limit, record_api_call,
+    get_account_call_stats, update_account_rate_limit
 )
 from models import ClaudeRequest
 from converter import convert_claude_to_codewhisperer_request, codewhisperer_request_to_dict
@@ -512,6 +513,11 @@ async def create_message(request: Request, _: bool = Depends(verify_api_key)):
             raise HTTPException(status_code=502, detail=f"上游服务错误: {str(req_err)}")
 
         # ===== 状态验证通过，创建流式响应 =====
+        # 记录 API 调用（如果使用了多账号模式）
+        if account:
+            record_api_call(account['id'], model)
+            logger.info(f"已记录账号 {account['id']} 的调用")
+
         # 注意：response 和 client 的生命周期由生成器管理
         async def byte_stream():
             try:
@@ -785,6 +791,10 @@ async def create_gemini_message(request: Request, _: bool = Depends(verify_api_k
             raise HTTPException(status_code=502, detail=f"上游服务错误: {str(req_err)}")
 
         # ===== 状态验证通过，创建流式响应 =====
+        # 记录 API 调用
+        record_api_call(account['id'], claude_req.model)
+        logger.info(f"已记录 Gemini 账号 {account['id']} 的调用")
+
         async def gemini_byte_stream():
             try:
                 logger.info("[HTTP] 开始迭代字节流")
@@ -1058,6 +1068,46 @@ async def get_account_quota(account_id: str, _: bool = Depends(verify_admin_key)
     except Exception as e:
         logger.error(f"获取配额信息失败: {e}")
         raise HTTPException(status_code=500, detail=f"获取配额信息失败: {str(e)}")
+
+
+@app.get("/v2/accounts/{account_id}/stats")
+async def get_account_stats(account_id: str, _: bool = Depends(verify_admin_key)):
+    """获取账号调用统计信息"""
+    try:
+        account = get_account(account_id)
+        if not account:
+            raise HTTPException(status_code=404, detail="账号不存在")
+
+        stats = get_account_call_stats(account_id)
+        return JSONResponse(content=stats)
+    except Exception as e:
+        logger.error(f"获取调用统计失败: {e}")
+        raise HTTPException(status_code=500, detail=f"获取调用统计失败: {str(e)}")
+
+
+@app.patch("/v2/accounts/{account_id}/rate-limit")
+async def update_account_rate_limit_endpoint(account_id: str, request: Request, _: bool = Depends(verify_admin_key)):
+    """更新账号的速率限制"""
+    try:
+        data = await request.json()
+        rate_limit_per_hour = data.get("rate_limit_per_hour")
+
+        if rate_limit_per_hour is None:
+            raise HTTPException(status_code=400, detail="缺少 rate_limit_per_hour 参数")
+
+        if not isinstance(rate_limit_per_hour, int) or rate_limit_per_hour < 0:
+            raise HTTPException(status_code=400, detail="rate_limit_per_hour 必须是非负整数")
+
+        account = update_account_rate_limit(account_id, rate_limit_per_hour)
+        if not account:
+            raise HTTPException(status_code=404, detail="账号不存在")
+
+        return JSONResponse(content=account)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"更新速率限制失败: {e}")
+        raise HTTPException(status_code=500, detail=f"更新速率限制失败: {str(e)}")
 
 
 # 配置管理 API

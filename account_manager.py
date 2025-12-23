@@ -42,16 +42,40 @@ def _ensure_db():
                 created_at TEXT,
                 updated_at TEXT,
                 enabled INTEGER DEFAULT 1,
-                type TEXT DEFAULT 'amazonq'
+                type TEXT DEFAULT 'amazonq',
+                rate_limit_per_hour INTEGER DEFAULT 20
             )
             """
         )
 
-        # 迁移：为已存在的表添加 type 字段
+        # 迁移：为已存在的表添加字段
         cursor = conn.execute("PRAGMA table_info(accounts)")
         columns = [row[1] for row in cursor.fetchall()]
         if 'type' not in columns:
             conn.execute("ALTER TABLE accounts ADD COLUMN type TEXT DEFAULT 'amazonq'")
+        if 'rate_limit_per_hour' not in columns:
+            conn.execute("ALTER TABLE accounts ADD COLUMN rate_limit_per_hour INTEGER DEFAULT 20")
+
+        # 创建调用记录表
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS call_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                model TEXT,
+                FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+            )
+            """
+        )
+
+        # 创建索引以加速查询
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_call_logs_account_timestamp
+            ON call_logs(account_id, timestamp)
+            """
+        )
 
         # 创建配置表
         conn.execute(
@@ -139,7 +163,7 @@ def list_enabled_accounts(account_type: Optional[str] = None) -> List[Dict[str, 
 
 
 def get_random_account(account_type: Optional[str] = None, model: Optional[str] = None) -> Optional[Dict[str, Any]]:
-    """随机选择一个启用的账号
+    """随机选择一个启用的账号（自动过滤限流和配额不足的账号）
 
     Args:
         account_type: 账号类型 ('amazonq' 或 'gemini')
@@ -152,20 +176,32 @@ def get_random_account(account_type: Optional[str] = None, model: Optional[str] 
     if not accounts:
         return None
 
-    # 如果是 Gemini 账号且指定了模型，需要检查配额
-    if account_type == "gemini" and model:
-        available_accounts = []
-        for account in accounts:
-            if is_model_available_for_account(account, model):
-                available_accounts.append(account)
+    # 过滤掉已达到限流的账号
+    available_accounts = []
+    for account in accounts:
+        # 检查限流
+        if not check_rate_limit(account['id']):
+            logger.debug(f"账号 {account.get('label')} (ID: {account.get('id')[:8]}...) 已达到限流，跳过")
+            continue
 
-        if not available_accounts:
-            logger.warning(f"没有可用的 Gemini 账号支持模型 {model}")
-            return None
+        # 如果是 Gemini 账号且指定了模型，需要检查配额
+        if account_type == "gemini" and model:
+            if not is_model_available_for_account(account, model):
+                logger.debug(f"账号 {account.get('label')} (ID: {account.get('id')[:8]}...) 模型 {model} 配额不足，跳过")
+                continue
 
-        return random.choice(available_accounts)
+        available_accounts.append(account)
 
-    return random.choice(accounts)
+    if not available_accounts:
+        if account_type == "gemini" and model:
+            logger.warning(f"没有可用的 Gemini 账号支持模型 {model}（所有账号都已限流或配额不足）")
+        else:
+            logger.warning(f"没有可用的 {account_type or '任何类型'} 账号（所有账号都已限流）")
+        return None
+
+    selected = random.choice(available_accounts)
+    logger.info(f"随机选择了账号: {selected.get('label')} (ID: {selected.get('id')[:8]}...)")
+    return selected
 
 
 def get_config(key: str) -> Optional[Any]:
@@ -557,6 +593,146 @@ def mark_model_exhausted(account_id: str, model: str, reset_time: str) -> None:
     # 更新数据库
     update_account(account_id, other=other)
     logger.info(f"已标记账号 {account_id} 的模型 {model} 配额用完，重置时间: {reset_time}")
+
+
+def record_api_call(account_id: str, model: Optional[str] = None) -> None:
+    """记录账号的 API 调用
+
+    Args:
+        account_id: 账号 ID
+        model: 使用的模型名称
+    """
+    now = time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime())
+    with _conn() as conn:
+        conn.execute(
+            "INSERT INTO call_logs (account_id, timestamp, model) VALUES (?, ?, ?)",
+            (account_id, now, model)
+        )
+        conn.commit()
+
+
+def check_rate_limit(account_id: str) -> bool:
+    """检查账号是否超过速率限制（滑动窗口）
+
+    Args:
+        account_id: 账号 ID
+
+    Returns:
+        True 如果未超过限制，False 如果已超过限制
+    """
+    account = get_account(account_id)
+    if not account:
+        return False
+
+    rate_limit = account.get("rate_limit_per_hour", 20)
+
+    # 计算一小时前的时间戳
+    one_hour_ago = datetime.now(timezone.utc) - __import__('datetime').timedelta(hours=1)
+    one_hour_ago_str = one_hour_ago.strftime("%Y-%m-%dT%H:%M:%S")
+
+    # 查询过去一小时内的调用次数
+    with _conn() as conn:
+        result = conn.execute(
+            "SELECT COUNT(*) FROM call_logs WHERE account_id=? AND timestamp >= ?",
+            (account_id, one_hour_ago_str)
+        ).fetchone()
+
+        call_count = result[0] if result else 0
+
+    return call_count < rate_limit
+
+
+def get_account_call_stats(account_id: str) -> Dict[str, Any]:
+    """获取账号的调用统计信息
+
+    Args:
+        account_id: 账号 ID
+
+    Returns:
+        包含调用统计的字典
+    """
+    account = get_account(account_id)
+    if not account:
+        return {}
+
+    rate_limit = account.get("rate_limit_per_hour", 20)
+
+    # 计算一小时前的时间戳
+    one_hour_ago = datetime.now(timezone.utc) - __import__('datetime').timedelta(hours=1)
+    one_hour_ago_str = one_hour_ago.strftime("%Y-%m-%dT%H:%M:%S")
+
+    with _conn() as conn:
+        # 过去一小时的调用次数
+        result = conn.execute(
+            "SELECT COUNT(*) FROM call_logs WHERE account_id=? AND timestamp >= ?",
+            (account_id, one_hour_ago_str)
+        ).fetchone()
+        calls_last_hour = result[0] if result else 0
+
+        # 总调用次数
+        result = conn.execute(
+            "SELECT COUNT(*) FROM call_logs WHERE account_id=?",
+            (account_id,)
+        ).fetchone()
+        total_calls = result[0] if result else 0
+
+        # 最近一次调用时间
+        result = conn.execute(
+            "SELECT timestamp FROM call_logs WHERE account_id=? ORDER BY timestamp DESC LIMIT 1",
+            (account_id,)
+        ).fetchone()
+        last_call_time = result[0] if result else None
+
+    return {
+        "account_id": account_id,
+        "rate_limit_per_hour": rate_limit,
+        "calls_last_hour": calls_last_hour,
+        "remaining_calls": max(0, rate_limit - calls_last_hour),
+        "total_calls": total_calls,
+        "last_call_time": last_call_time,
+        "is_rate_limited": calls_last_hour >= rate_limit
+    }
+
+
+def update_account_rate_limit(account_id: str, rate_limit_per_hour: int) -> Optional[Dict[str, Any]]:
+    """更新账号的速率限制
+
+    Args:
+        account_id: 账号 ID
+        rate_limit_per_hour: 每小时允许的调用次数
+
+    Returns:
+        更新后的账号信息
+    """
+    with _conn() as conn:
+        conn.execute(
+            "UPDATE accounts SET rate_limit_per_hour=?, updated_at=? WHERE id=?",
+            (rate_limit_per_hour, time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime()), account_id)
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM accounts WHERE id=?", (account_id,)).fetchone()
+        return _row_to_dict(row) if row else None
+
+
+def cleanup_old_call_logs(days: int = 7) -> int:
+    """清理旧的调用记录
+
+    Args:
+        days: 保留最近多少天的记录
+
+    Returns:
+        删除的记录数
+    """
+    cutoff_time = datetime.now(timezone.utc) - __import__('datetime').timedelta(days=days)
+    cutoff_time_str = cutoff_time.strftime("%Y-%m-%dT%H:%M:%S")
+
+    with _conn() as conn:
+        cursor = conn.execute(
+            "DELETE FROM call_logs WHERE timestamp < ?",
+            (cutoff_time_str,)
+        )
+        conn.commit()
+        return cursor.rowcount
 
 
 # 初始化数据库
